@@ -56,7 +56,7 @@
             font-family: 'Press Start 2P', monospace;
             text-shadow: 1px 1px 0 #008000;
         }
-        .score {
+        .score, .level {
             color: #00ff00; /* Bright green */
             font-size: 24px;
             font-weight: bold;
@@ -64,6 +64,8 @@
             font-family: 'Press Start 2P', monospace; /* Pixel font */
             text-shadow: 2px 2px 0 #008000; /* Pixelated effect */
             letter-spacing: 2px;
+            display: inline-block; /* Allow side-by-side */
+            margin: 0 15px; /* Spacing between score and level */
         }
         #status {
             margin-top: 10px;
@@ -79,7 +81,10 @@
         <h1>👾 Centipede Arcade</h1>
         <div class="info">Applaa Game Preview - Top-Down Shooter</div>
         <canvas id="gameCanvas" width="800" height="600"></canvas>
-        <div class="score">Score: <span id="score">0</span></div>
+        <div>
+            <div class="score">Score: <span id="score">0</span></div>
+            <div class="level">Level: <span id="level">1</span></div>
+        </div>
         <div class="controls">
             Use ARROW KEYS or WASD to move | SPACE to shoot
         </div>
@@ -89,10 +94,12 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
+        const levelElement = document.getElementById('level');
         const statusElement = document.getElementById('status');
         
         // Game state
         let score = 0;
+        let level = 1;
         const canvasWidth = 800;
         const canvasHeight = 600;
         let gameOver = false;
@@ -117,8 +124,8 @@
         // Worm
         let wormSegments = [];
         const segmentSize = 20;
-        const initialWormSpeed = 2;
-        let wormSpeed = initialWormSpeed;
+        const baseWormSpeed = 2; // Base speed for level 1
+        let wormSpeed = baseWormSpeed;
         let wormDirection = 1; // 1 for right, -1 for left
         const wormDropDistance = 30;
         const wormColor = '#ff0000'; // Bright red
@@ -134,11 +141,16 @@
         });
         
         // Game initialization
-        function createWorm() {
+        function createWorm(currentLevel) {
             wormSegments = [];
-            const numSegments = 10;
-            const startX = canvasWidth / 2 - (numSegments * segmentSize) / 2;
+            const baseNumSegments = 10;
+            const numSegments = baseNumSegments + (currentLevel - 1) * 2; // Add 2 segments per level
+            
+            // Ensure worm doesn't start too wide for the canvas
+            const wormWidth = numSegments * segmentSize;
+            const startX = Math.max(segmentSize / 2, (canvasWidth - wormWidth) / 2);
             const startY = 50;
+
             for (let i = 0; i < numSegments; i++) {
                 wormSegments.push({
                     x: startX + i * segmentSize,
@@ -148,15 +160,17 @@
                     id: i // Unique ID for each segment
                 });
             }
-            wormSpeed = initialWormSpeed; // Reset speed
+            wormSpeed = baseWormSpeed + (currentLevel - 1) * 0.5; // Increase speed by 0.5 per level
             wormDirection = 1; // Reset direction
         }
 
         function resetGame() {
             score = 0;
+            level = 1;
             scoreElement.textContent = score;
+            levelElement.textContent = level;
             bullets = [];
-            createWorm();
+            createWorm(level);
             player.x = canvasWidth / 2;
             player.y = canvasHeight - 50;
             player.currentCooldown = 0;
@@ -271,10 +285,11 @@
                 }
             }
         
-            // If all segments are destroyed, create a new worm and increase difficulty
+            // If all segments are destroyed, advance to next level
             if (wormSegments.length === 0) {
-                createWorm();
-                wormSpeed += 0.5; // Increase speed for next worm
+                level++;
+                levelElement.textContent = level;
+                createWorm(level); // Create new worm for the next level
             }
         }
 
@@ -337,7 +352,7 @@
             requestAnimationFrame(gameLoop);
         }
         
-        createWorm(); // Initialize the worm
+        createWorm(level); // Initialize the worm for level 1
         gameLoop();
     
         
